@@ -66,9 +66,9 @@ deep_speech_setup:
   n_rnn_layers: 1
   rnn_dim: 256
   stride: 2
-  dropout: 0.3
-  learning_rate: 0.0005 #1e-4
-  batch_size: 16
+  dropout: 0.5
+  learning_rate: 0.001 #1e-4
+  batch_size: 8
   epochs: 80
   early_stop: True
   patient: 10

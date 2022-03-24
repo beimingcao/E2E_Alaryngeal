@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from utils.IO_func import read_file_list, load_binary_file, array_to_binary_file, load_Haskins_ATS_data
 import librosa
+from scipy.signal import butter, lfilter, freqz
 
 ###################### Haskins IEEE dataset #####################################
 '''
@@ -170,6 +171,17 @@ class Alaryngeal_data(Dataset):
             label = torch.Tensor(text_transform.text_to_int(phone_seq))
             self.data.append((file_id, ema_organize, label))
             
+    def butter_lowpass(self, cutoff, fs, order=5):
+        nyq = 0.5 * fs
+        normal_cutoff = cutoff / nyq
+        b, a = butter(order, normal_cutoff, btype='low', analog=False)
+        return b, a
+
+    def butter_lowpass_filter(self, data, cutoff, fs, order=5):
+        b, a = self.butter_lowpass(cutoff, fs, order=order)
+        y = lfilter(b, a, data)
+        return y
+            
     def sensor_organize(self, ema):
 
         ema_organize = np.vstack((ema[4,:], ema[3,:], ema[1,:], ema[0,:], ema[7,:], ema[6,:], ema[10,:], ema[9,:]))
@@ -179,6 +191,11 @@ class Alaryngeal_data(Dataset):
 
         ema_center = np.tile((cx, cy), (1,4))
         ema_organize = ema_organize.T - ema_center    
+        
+        for i in range(ema_organize.shape[1]):
+            I = ema_organize[:,i]
+            I_filtered = self.butter_lowpass_filter(I, 20, 100, 5)
+            ema_organize[:,i] = I_filtered
 
         return ema_organize
 
@@ -191,4 +208,3 @@ class Alaryngeal_data(Dataset):
         if self.transforms is not None:
             EMA, TXT = self.transforms(EMA, TXT)         
         return (file_id, EMA, TXT)
-
